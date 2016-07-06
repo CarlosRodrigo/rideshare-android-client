@@ -1,7 +1,5 @@
 package com.rideshare.rideshare;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.CursorLoader;
@@ -29,16 +27,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
-import com.android.volley.NetworkResponse;
-import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.Response;
-import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rideshare.rideshare.helpers.AuthenticationHelper;
+import com.rideshare.rideshare.helpers.ProgressBarHelper;
+import com.rideshare.rideshare.helpers.ResponseParserHelper;
 import com.rideshare.rideshare.helpers.URLHelper;
 import com.rideshare.rideshare.model.User;
 
@@ -169,7 +166,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         View focusView = null;
 
         // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+        if (!TextUtils.isEmpty(password) && !AuthenticationHelper.isPasswordValid(password)) {
             mPasswordView.setError(getString(R.string.error_invalid_password));
             focusView = mPasswordView;
             cancel = true;
@@ -180,7 +177,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             mEmailView.setError(getString(R.string.error_field_required));
             focusView = mEmailView;
             cancel = true;
-        } else if (!isEmailValid(email)) {
+        } else if (!AuthenticationHelper.isEmailValid(email)) {
             mEmailView.setError(getString(R.string.error_invalid_email));
             focusView = mEmailView;
             cancel = true;
@@ -193,54 +190,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
-            showProgress(true);
+            ProgressBarHelper.showProgress(true, mLoginFormView, mProgressView,
+                    getResources().getInteger(android.R.integer.config_shortAnimTime));
             login(email, password);
-        }
-    }
-
-    private boolean isEmailValid(String email) {
-        //TODO: Replace this with your own logic
-        return email.contains("@");
-    }
-
-    private boolean isPasswordValid(String password) {
-        //TODO: Replace this with your own logic
-        return password.length() > 4;
-    }
-
-    /**
-     * Shows the progress UI and hides the login form.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void showProgress(final boolean show) {
-        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
-        // for very easy animations. If available, use these APIs to fade-in
-        // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
-
-            mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-            mLoginFormView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-                }
-            });
-
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mProgressView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-                }
-            });
-        } else {
-            // The ViewPropertyAnimator APIs are not available, so simply show
-            // and hide the relevant UI components.
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
 
@@ -302,7 +254,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         StringRequest request = new StringRequest(Request.Method.POST, URLHelper.LOGIN, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                showProgress(false);
+                ProgressBarHelper.showProgress(false, mLoginFormView, mProgressView,
+                        getResources().getInteger(android.R.integer.config_shortAnimTime));
+
                 User user = parseResponseJSON(response);
                 if (user != null) {
                     Intent intent = new Intent(getApplicationContext(), MainActivity.class);
@@ -313,9 +267,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                showProgress(false);
+                ProgressBarHelper.showProgress(false, mLoginFormView, mProgressView,
+                        getResources().getInteger(android.R.integer.config_shortAnimTime));
 
-                handleError(error);
+                ResponseParserHelper.handleError(error, getBaseContext());
             }
         }){
             @Override
@@ -349,34 +304,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     private void onLoginFailed(String message) {
         Toast.makeText(getBaseContext(), message, Toast.LENGTH_LONG).show();
-    }
-
-    private void handleError(VolleyError error) {
-        if (error instanceof TimeoutError) {
-            onLoginFailed("Erro de tempo de resposta");
-        } else if (error instanceof NoConnectionError) {
-            onLoginFailed("Falha na conexão com o servidor");
-        } else {
-            NetworkResponse networkResponse = error.networkResponse;
-            String stringError = new String(networkResponse.data);
-
-            parseErrorJSON(stringError);
-        }
-    }
-
-    private void parseErrorJSON(String stringError) {
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> errorMessage = null;
-        try {
-            errorMessage = mapper.readValue(stringError, new TypeReference<Map<String,String>>() { });
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        if (errorMessage != null && !TextUtils.isEmpty(errorMessage.get("error")))
-            onLoginFailed(errorMessage.get("error"));
-        else
-            onLoginFailed("Problema de conexão");
     }
 
 }

@@ -1,9 +1,5 @@
 package com.rideshare.rideshare;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -16,6 +12,9 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.rideshare.rideshare.helpers.AuthenticationHelper;
+import com.rideshare.rideshare.helpers.ProgressBarHelper;
+import com.rideshare.rideshare.helpers.ResponseParserHelper;
 import com.rideshare.rideshare.helpers.URLHelper;
 
 import java.util.HashMap;
@@ -85,7 +84,7 @@ public class SignUpActivity extends AppCompatActivity {
             mPasswordText.setError(getString(R.string.error_field_required));
             focusView = mPasswordText;
             cancel = true;
-        } else if (!isPasswordValid(password)) {
+        } else if (!AuthenticationHelper.isPasswordValid(password)) {
             mPasswordText.setError(getString(R.string.error_invalid_password));
             focusView = mPasswordText;
             cancel = true;
@@ -96,7 +95,7 @@ public class SignUpActivity extends AppCompatActivity {
             mEmailText.setError(getString(R.string.error_field_required));
             focusView = mEmailText;
             cancel = true;
-        } else if (!isEmailValid(email)) {
+        } else if (!AuthenticationHelper.isEmailValid(email)) {
             mEmailText.setError(getString(R.string.error_invalid_email));
             focusView = mEmailText;
             cancel = true;
@@ -109,54 +108,9 @@ public class SignUpActivity extends AppCompatActivity {
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user sign up attempt.
-            showProgress(true);
+            ProgressBarHelper.showProgress(true, mSignUpFormView, mProgressView,
+                    getResources().getInteger(android.R.integer.config_shortAnimTime));
             register(name, email, password);
-        }
-    }
-
-    private boolean isEmailValid(String email) {
-        //TODO: Replace this with your own logic
-        return email.contains("@");
-    }
-
-    private boolean isPasswordValid(String password) {
-        //TODO: Replace this with your own logic
-        return password.length() > 4;
-    }
-
-    /**
-     * Shows the progress UI and hides the sign up form.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void showProgress(final boolean show) {
-        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
-        // for very easy animations. If available, use these APIs to fade-in
-        // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
-
-            mSignUpFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-            mSignUpFormView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mSignUpFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-                }
-            });
-
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mProgressView.animate().setDuration(shortAnimTime).alpha(
-                    show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-                }
-            });
-        } else {
-            // The ViewPropertyAnimator APIs are not available, so simply show
-            // and hide the relevant UI components.
-            mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-            mSignUpFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
 
@@ -164,13 +118,18 @@ public class SignUpActivity extends AppCompatActivity {
         StringRequest request = new StringRequest(Request.Method.POST, URLHelper.SIGN_UP, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                showProgress(false);
+                ProgressBarHelper.showProgress(false, mSignUpFormView, mProgressView,
+                        getResources().getInteger(android.R.integer.config_shortAnimTime));
+
                 finish();
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                showProgress(false);
+                ProgressBarHelper.showProgress(false, mSignUpFormView, mProgressView,
+                        getResources().getInteger(android.R.integer.config_shortAnimTime));
+
+                ResponseParserHelper.handleError(error, getBaseContext());
             }
         }){
             @Override
