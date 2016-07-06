@@ -26,14 +26,23 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkResponse;
+import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.Response;
+import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rideshare.rideshare.helpers.URLHelper;
+import com.rideshare.rideshare.model.User;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -294,12 +303,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             @Override
             public void onResponse(String response) {
                 showProgress(false);
-                finish();
+                User user = parseResponseJSON(response);
+                if (user != null) {
+                    Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                    startActivity(intent);
+                    finish();
+                }
             }
         }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 showProgress(false);
+
+                handleError(error);
             }
         }){
             @Override
@@ -314,6 +330,53 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         };
 
         AppController.getInstance().addToRequestQueue(request);
+    }
+
+    private User parseResponseJSON(String response) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        User user = null;
+
+        try {
+            user = objectMapper.readValue(response, User.class);
+        } catch (IOException e) {
+            onLoginFailed("Ocorreu um erro na comunicação com o servidor");
+        }
+
+        return user;
+    }
+
+    private void onLoginFailed(String message) {
+        Toast.makeText(getBaseContext(), message, Toast.LENGTH_LONG).show();
+    }
+
+    private void handleError(VolleyError error) {
+        if (error instanceof TimeoutError) {
+            onLoginFailed("Erro de tempo de resposta");
+        } else if (error instanceof NoConnectionError) {
+            onLoginFailed("Falha na conexão com o servidor");
+        } else {
+            NetworkResponse networkResponse = error.networkResponse;
+            String stringError = new String(networkResponse.data);
+
+            parseErrorJSON(stringError);
+        }
+    }
+
+    private void parseErrorJSON(String stringError) {
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, String> errorMessage = null;
+        try {
+            errorMessage = mapper.readValue(stringError, new TypeReference<Map<String,String>>() { });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (errorMessage != null && !TextUtils.isEmpty(errorMessage.get("error")))
+            onLoginFailed(errorMessage.get("error"));
+        else
+            onLoginFailed("Problema de conexão");
     }
 
 }
