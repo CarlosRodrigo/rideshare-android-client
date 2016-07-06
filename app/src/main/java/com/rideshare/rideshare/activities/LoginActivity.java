@@ -32,9 +32,11 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rideshare.rideshare.AppController;
 import com.rideshare.rideshare.R;
+import com.rideshare.rideshare.helpers.ApiKeyHelper;
 import com.rideshare.rideshare.helpers.AuthenticationHelper;
 import com.rideshare.rideshare.helpers.ProgressBarHelper;
 import com.rideshare.rideshare.helpers.ResponseParserHelper;
@@ -296,7 +298,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         User user = null;
 
         try {
-            user = objectMapper.readValue(response, User.class);
+            JsonNode jsonResponse = objectMapper.readTree(response);
+            JsonNode jsonUser = jsonResponse.path("user");
+            JsonNode jsonApikey = jsonResponse.path("token");
+
+            user = objectMapper.readValue(String.valueOf(jsonUser), User.class);
+            ApiKeyHelper.setApiKey(objectMapper.readValue(String.valueOf(jsonApikey), String.class));
         } catch (IOException e) {
             onLoginFailed("Ocorreu um erro na comunicação com o servidor");
         }
