@@ -3,21 +3,25 @@ package com.rideshare.rideshare;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
-import android.os.AsyncTask;
 import android.os.Build;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-public class SignUpActivity extends AppCompatActivity {
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.rideshare.rideshare.helpers.URLHelper;
 
-    /**
-     * Keep track of the sign up task to ensure we can cancel it if requested.
-     */
-    private UserSignUpTask mSignUpTask = null;
+import java.util.HashMap;
+import java.util.Map;
+
+public class SignUpActivity extends AppCompatActivity {
 
     private EditText mNameText;
     private EditText mEmailText;
@@ -57,11 +61,8 @@ public class SignUpActivity extends AppCompatActivity {
      * errors are presented and no actual sign up attempt is made.
      */
     private void attemptSignUp() {
-        if (mSignUpTask != null) {
-            return;
-        }
-
         // Reset errors.
+        mNameText.setError(null);
         mEmailText.setError(null);
         mPasswordText.setError(null);
 
@@ -109,8 +110,7 @@ public class SignUpActivity extends AppCompatActivity {
             // Show a progress spinner, and kick off a background task to
             // perform the user sign up attempt.
             showProgress(true);
-            mSignUpTask = new UserSignUpTask(email, password);
-            mSignUpTask.execute((Void) null);
+            register(name, email, password);
         }
     }
 
@@ -160,49 +160,31 @@ public class SignUpActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Represents an asynchronous sign up task.
-     */
-    public class UserSignUpTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String mEmail;
-        private final String mPassword;
-
-        UserSignUpTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mSignUpTask = null;
-            showProgress(false);
-
-            if (success) {
+    private void register(final String name, final String email, final String password) {
+        StringRequest request = new StringRequest(Request.Method.POST, URLHelper.SIGN_UP, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                showProgress(false);
                 finish();
-            } else {
-                mPasswordText.setError(getString(R.string.error_incorrect_password));
-                mPasswordText.requestFocus();
             }
-        }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                showProgress(false);
+            }
+        }){
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
 
-        @Override
-        protected void onCancelled() {
-            mSignUpTask = null;
-            showProgress(false);
-        }
+                params.put("name", name);
+                params.put("email", email);
+                params.put("password", password);
+
+                return params;
+            }
+        };
+
+        AppController.getInstance().addToRequestQueue(request);
     }
 }
