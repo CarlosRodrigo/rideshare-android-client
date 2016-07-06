@@ -1,4 +1,4 @@
-package com.rideshare.rideshare;
+package com.rideshare.rideshare.activities;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -12,6 +12,8 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.rideshare.rideshare.AppController;
+import com.rideshare.rideshare.R;
 import com.rideshare.rideshare.helpers.AuthenticationHelper;
 import com.rideshare.rideshare.helpers.ProgressBarHelper;
 import com.rideshare.rideshare.helpers.ResponseParserHelper;

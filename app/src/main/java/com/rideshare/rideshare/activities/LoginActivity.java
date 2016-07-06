@@ -1,4 +1,4 @@
-package com.rideshare.rideshare;
+package com.rideshare.rideshare.activities;
 
 import android.annotation.TargetApi;
 import android.app.LoaderManager.LoaderCallbacks;
@@ -33,6 +33,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rideshare.rideshare.AppController;
+import com.rideshare.rideshare.R;
 import com.rideshare.rideshare.helpers.AuthenticationHelper;
 import com.rideshare.rideshare.helpers.ProgressBarHelper;
 import com.rideshare.rideshare.helpers.ResponseParserHelper;
