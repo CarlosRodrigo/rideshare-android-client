@@ -16,4 +16,10 @@
     <string name="permission_rationale">"Permissão de acesso a contatos deve ser concedida para
         auto completar emails."
     </string>
+    <string name="title_activity_main">MainActivity</string>
+
+    <string-array name="titles_tab">
+        <item>Itinerários</item>
+        <item>Caronas</item>
+    </string-array>
 </resources>
